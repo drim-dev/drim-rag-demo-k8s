@@ -7,3 +7,4 @@ qdrant_storage/
 .state.json
 .uv/
 uv.lock
+.serena/

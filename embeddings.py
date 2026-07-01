@@ -12,18 +12,35 @@ from fastembed import SparseTextEmbedding
 from config import DENSE_MODEL, OLLAMA_URL, SPARSE_MODEL
 
 
+# nomic-embed-text holds 2048 tokens and Ollama's server-side truncate is unreliable
+# on long inputs, so cap each text client-side as a first cut. Token density varies
+# (dense markdown/code overflows even at this cap), so _embed_batch shrinks any
+# offender further on a 400. The full text still lives in the payload and the BM25
+# (sparse) vector, so dropping a dense-vector tail costs no retrieval signal.
+MAX_EMBED_CHARS = 6000
+
+
+def _embed_batch(batch: list[str]) -> list[list[float]]:
+    resp = requests.post(
+        f"{OLLAMA_URL}/api/embed",
+        json={"model": DENSE_MODEL, "input": batch, "truncate": True},
+        timeout=120,
+    )
+    if resp.status_code == 400:
+        if len(batch) > 1:
+            mid = len(batch) // 2
+            return _embed_batch(batch[:mid]) + _embed_batch(batch[mid:])
+        return _embed_batch([batch[0][: max(1, len(batch[0]) // 2)]])
+    resp.raise_for_status()
+    return resp.json()["embeddings"]
+
+
 def embed_dense(texts: list[str], batch_size: int = 32) -> list[list[float]]:
-    """Dense embeddings via Ollama /api/embed (batched)."""
+    """Dense embeddings via Ollama /api/embed (batched, shrink-on-overflow)."""
     out: list[list[float]] = []
     for i in range(0, len(texts), batch_size):
-        batch = texts[i:i + batch_size]
-        resp = requests.post(
-            f"{OLLAMA_URL}/api/embed",
-            json={"model": DENSE_MODEL, "input": batch},
-            timeout=120,
-        )
-        resp.raise_for_status()
-        out.extend(resp.json()["embeddings"])
+        batch = [t[:MAX_EMBED_CHARS] for t in texts[i:i + batch_size]]
+        out.extend(_embed_batch(batch))
     return out
 
 
