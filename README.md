@@ -75,9 +75,9 @@ claude mcp add --transport stdio scheduler-memory -- uv run python mcp_server.py
 # в Claude Code: /mcp  → должен появиться search_org_memory
 ```
 
-Killer-демо (вытеснение, с/без RAG): попросите агента реализовать cross-node preemption — «гарантируй, чтобы поду досталась освобождённая нода, иначе ищи жертв по всему кластеру».
-- **Без** `search_org_memory` агент это и реализует (интуитивно), повторяя отвергнутый подход.
-- **С** инструментом — достаёт из `pod-preemption.md` рационал отказа (`nominatedNodeName` — лишь подсказка; cross-node search «prohibitively expensive in large clusters») и обходит.
+Killer-демо (вытеснение, с/без RAG): попросите агента **спроектировать** cross-node preemption — написать `design` через `design-brainstorming` (как в SDD): «гарантируй поду освобождённую ноду, иначе ищи жертв по всему кластеру».
+- **Без** `search_org_memory` секция «Alternatives Considered» угадана: агент проектирует отвергнутый подход как рабочий.
+- **С** инструментом — заземляет её в орг-памяти: достаёт из `pod-preemption.md` рационал отказа (`nominatedNodeName` — лишь подсказка; cross-node «prohibitively expensive in large clusters») со ссылкой. Полный сценарий — в [`KILLER_DEMO.md`](KILLER_DEMO.md).
 
 > Для killer-демо в корпусе нужен `kubernetes/design-proposals-archive/scheduling/pod-preemption.md` — добавляется в кучу `kep` на Ф5.
 
@@ -100,7 +100,7 @@ uv run python enqueue.py 124978        # переиндексировать issu
 
 ## Killer-демо + оценка (Ф5)
 
-**Killer-демо вытеснения (с/без RAG)** — кульминация лекции, полный сценарий в [`KILLER_DEMO.md`](KILLER_DEMO.md). Коротко: агенту дают задачу реализовать cross-node preemption; без `search_org_memory` он повторяет отвергнутый дизайн, с ним — достаёт рационал отказа из `pod-preemption.md` и обходит. Требует `download_designs.py` в корпусе.
+**Killer-демо вытеснения (с/без RAG)** — кульминация лекции, полный сценарий в [`KILLER_DEMO.md`](KILLER_DEMO.md). Коротко: агента просят **спроектировать** cross-node preemption (артефакт `design` из SDD); без `search_org_memory` секция «Alternatives Considered» угадана, с ним — заземлена в задокументированном рационале из `pod-preemption.md`. RAG повышает **качество проектного решения**. Требует `download_designs.py` в корпусе.
 
 **Retrieval-eval** — измеряем слой ретривала «не на глаз» (вопрос → ожидаемые источники → hit-rate/precision/recall/MRR), датасет `eval_dataset.json`:
 
