@@ -44,7 +44,10 @@ def main() -> None:
     print(f"worker '{CONSUMER}' listening on stream '{STREAM}' (group '{GROUP}')")
 
     while True:
-        resp = r.xreadgroup(GROUP, CONSUMER, {STREAM: ">"}, count=1, block=5000)
+        try:
+            resp = r.xreadgroup(GROUP, CONSUMER, {STREAM: ">"}, count=1, block=5000)
+        except redis.exceptions.TimeoutError:
+            continue  # redis-py surfaces an idle BLOCK as a socket timeout; keep waiting
         if not resp:
             continue
         for _stream, messages in resp:

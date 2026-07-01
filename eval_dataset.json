@@ -16,8 +16,8 @@
   },
   {
     "question": "What is NominatedNodeName used for in the scheduler?",
-    "expected": ["scheduling/pod-preemption.md", "1923-prefer-nominated-node"],
-    "note": "exact identifier — vector-only retrieval tends to miss it"
+    "expected": ["nominated-node", "assign-pod-node.md"],
+    "note": "authoritative sources: nominated-node KEPs (1923, 5278) + scheduling docs"
   },
   {
     "question": "What does the Permit extension point in the scheduling framework do?",
