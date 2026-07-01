@@ -162,6 +162,6 @@ uv run python evaluate.py --mode retrieval
 - Ф2: гибридный ретривал `retrieval.py` (dense+sparse RRF) + локальный реранк.
 - Ф3: MCP-сервер `mcp_server.py` (`search_org_memory`).
 - Ф4: очередь Redis Streams — `ingest.py`/`worker.py`/`webhook.py`/`enqueue.py`.
-- Ф5: пятый источник design-proposals (`download_designs.py`) + retrieval-eval (`evaluate.py`, `eval_dataset.json`) + killer-сценарий (`KILLER_DEMO.md`).
+- Ф5: пятый источник design-proposals (`download_designs.py`) + retrieval-eval (`evaluate.py`, `eval_dataset.json`) + killer-сценарий (`DEMO.md`).
 
 Синтаксис всех модулей проверен; end-to-end прогон и наполнение данными — за Димой (нужны Docker/Ollama/сеть/зависимости).

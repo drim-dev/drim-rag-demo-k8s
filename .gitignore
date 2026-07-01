@@ -8,3 +8,6 @@ qdrant_storage/
 .uv/
 uv.lock
 .serena/
+
+# Local Claude Code MCP registration (populated per machine via `claude mcp add`)
+.mcp.json

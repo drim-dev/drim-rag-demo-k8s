@@ -4,24 +4,24 @@
 
 Проектное решение и фазы: [`DESIGN.md`](DESIGN.md). Структура лекции — в репозитории курса `drim-dev` (`lectures/rag-lecture-structure.md`).
 
-> Статус: **Ф0–Ф5 реализованы** (каркас + ингест четырёх куч + индексация в Qdrant + гибридный ретривал с реранком + MCP-сервер + очередь живого обновления + killer-демо + retrieval-eval). Синтаксис проверен; end-to-end прогон и наполнение данными — за тобой.
+> Статус: **Ф0–Ф5 реализованы** (каркас + ингест четырёх пластов + индексация в Qdrant + гибридный ретривал с реранком + MCP-сервер + очередь живого обновления + killer-демо + retrieval-eval). Синтаксис проверен; end-to-end прогон и наполнение данными — за тобой.
 
-## Четыре кучи памяти
+## Четыре пласта памяти
 
-| Куча | Источник | Скрипт |
+| Пласт | Источник | Скрипт |
 |---|---|---|
 | `code` | `pkg/scheduler/**` из `kubernetes/kubernetes` | `scripts/download_code.py` |
 | `kep` | `keps/sig-scheduling/**` из `kubernetes/enhancements` | `scripts/download_keps.py` |
 | `issue` | issues+PR с меткой `sig/scheduling` (тело + комментарии) | `scripts/download_issues.py` |
 | `docs` | страницы планировщика из `kubernetes/website` | `scripts/download_docs.py` |
 
-Куча `issue` — «почему» №2: рационал и отвергнутые подходы живут в комментариях.
+Пласт `issue` — «почему» №2: рационал и отвергнутые подходы живут в комментариях.
 
 ## Предусловия
 
 - [uv](https://docs.astral.sh/uv/), Python 3.11+
 - Docker (Qdrant + Redis + Ollama)
-- `GITHUB_TOKEN` (обязателен для кучи `issue`, желателен для остальных — снимает лимиты)
+- `GITHUB_TOKEN` (обязателен для пласта `issue`, желателен для остальных — снимает лимиты)
 
 ## Запуск (Ф0–Ф1)
 
@@ -34,12 +34,12 @@ docker compose up -d
 uv sync
 cp .env.example .env        # впишите GITHUB_TOKEN
 
-# 3. Наполнить данными — четыре кучи
+# 3. Наполнить данными — четыре пласта
 uv run python scripts/download_code.py
 uv run python scripts/download_keps.py
 uv run python scripts/download_issues.py
 uv run python scripts/download_docs.py
-uv run python scripts/download_designs.py    # design-proposals (killer-демо) → куча kep
+uv run python scripts/download_designs.py    # design-proposals (killer-демо) → пласт kep
 
 # 4. Индексация (инкрементально; --force для полной; --source code|kep|issue|docs)
 uv run python index.py --source all
@@ -58,11 +58,21 @@ uv run python retrieval.py "NominatedNodeName" --mode dense
 # гибрид (BM25+вектор) ловит его; реранк поднимает точный фрагмент наверх
 uv run python retrieval.py "NominatedNodeName" --mode hybrid --rerank
 
-# вопрос «почему», скоуп по куче
+# вопрос «почему», скоуп по пласту
 uv run python retrieval.py "why doesn't preemption guarantee the freed node" --mode hybrid --pile kep
 ```
 
 Режимы: `--mode dense|sparse|hybrid`, фильтр `--pile code|kep|issue|docs`, `--top-k`, `--rerank`.
+
+## Веб-интерфейс (UI): вопрос-ответ для человека
+
+`app.py` (Streamlit) — путь RAG **без агента**: человек задаёт вопрос, система достаёт фрагменты и отвечает со ссылками. Тумблер «Использовать RAG» — контраст лекции: с RAG ответ заземлён в источниках и цитирует их; без RAG модель отвечает из своих весов, без ссылок.
+
+```bash
+uv run streamlit run app.py        # http://localhost:8501
+```
+
+Нужен `ANTHROPIC_API_KEY` в `.env` (ответ пишет Opus; русский вопрос переводится на английский для поиска через Haiku — корпус английский). Инфраструктура и индекс — из шагов Ф0–Ф1 выше; отдельно ничего экспортировать не нужно, `config.py` подхватывает `.env`.
 
 ## MCP-сервер (Ф3): RAG как инструмент агента
 
@@ -75,11 +85,11 @@ claude mcp add --transport stdio scheduler-memory -- uv run python mcp_server.py
 # в Claude Code: /mcp  → должен появиться search_org_memory
 ```
 
-Killer-демо (вытеснение, с/без RAG): попросите агента **спроектировать** cross-node preemption — написать `design` через `design-brainstorming` (как в SDD): «гарантируй поду освобождённую ноду, иначе ищи жертв по всему кластеру».
-- **Без** `search_org_memory` секция «Alternatives Considered» угадана: агент проектирует отвергнутый подход как рабочий.
-- **С** инструментом — заземляет её в орг-памяти: достаёт из `pod-preemption.md` рационал отказа (`nominatedNodeName` — лишь подсказка; cross-node «prohibitively expensive in large clusters») со ссылкой. Полный сценарий — в [`KILLER_DEMO.md`](KILLER_DEMO.md).
+Killer-демо (фича поверх вытеснения, с/без RAG): попросите агента спроектировать через скилл `design` (как в SDD) размещение помощника `H` (локальный кеш) на **той же ноде**, что и важный под `P`, которого планировщик метит на освобождённую ноду через `nominatedNodeName`.
+- **Без** `search_org_memory` агент считает `nominatedNodeName` гарантией → «сажаем H на эту ноду сразу». Код по такому `design` ломается на гонке (P не занял ноду, H сидит там один).
+- **С** инструментом — достаёт из `pod-preemption.md`, что `nominatedNodeName` лишь **подсказка** (со ссылкой), и `design` меняется на корректный: ждать фактической привязки P → тогда сажать H рядом. RAG изменил `design` → и **код, который поедет в прод**. Полный сценарий — в [`DEMO.md`](DEMO.md).
 
-> Для killer-демо в корпусе нужен `kubernetes/design-proposals-archive/scheduling/pod-preemption.md` — добавляется в кучу `kep` на Ф5.
+> Для killer-демо в корпусе нужен `kubernetes/design-proposals-archive/scheduling/pod-preemption.md` — добавляется в пласт `kep` на Ф5.
 
 ## Живое обновление (Ф4): очередь Redis Streams
 
@@ -100,7 +110,7 @@ uv run python enqueue.py 124978        # переиндексировать issu
 
 ## Killer-демо + оценка (Ф5)
 
-**Killer-демо вытеснения (с/без RAG)** — кульминация лекции, полный сценарий в [`KILLER_DEMO.md`](KILLER_DEMO.md). Коротко: агента просят **спроектировать** cross-node preemption (артефакт `design` из SDD); без `search_org_memory` секция «Alternatives Considered» угадана, с ним — заземлена в задокументированном рационале из `pod-preemption.md`. RAG повышает **качество проектного решения**. Требует `download_designs.py` в корпусе.
+**Killer-демо (с/без RAG)** — кульминация лекции, полный сценарий в [`DEMO.md`](DEMO.md). Коротко: агента просят спроектировать фичу поверх вытеснения (артефакт `design` из SDD) — посадить помощника `H` на ту же ноду, что и под `P`. Без `search_org_memory` агент считает `nominatedNodeName` гарантией и проектирует код, который ломается на гонке; с ним — достаёт из `pod-preemption.md`, что это лишь подсказка, и `design` (а значит и код в проде) становится корректным. RAG меняет **проектное решение и то, что построят**. Требует `download_designs.py` в корпусе.
 
 **Retrieval-eval** — измеряем слой ретривала «не на глаз» (вопрос → ожидаемые источники → hit-rate/precision/recall/MRR), датасет `eval_dataset.json`:
 
@@ -111,7 +121,17 @@ uv run python evaluate.py --mode hybrid --rerank    # сравнить: гибр
 
 ## Карта знаний
 
-Откройте Qdrant Dashboard: **http://localhost:6333/dashboard** → коллекция `scheduler_memory` → вкладка **Visualize** → раскрасьте точки по полю `pile`. Видно четыре кучи как визуальную карту орг-памяти — это открытие лекции.
+Откройте Qdrant Dashboard: **http://localhost:6333/dashboard** → коллекция `scheduler_memory` → вкладка **Visualize** и запустите:
+
+```json
+{
+  "limit": 1000,
+  "using": "dense",
+  "color_by": { "payload": "pile" }
+}
+```
+
+`using: "dense"` обязателен — у коллекции именованные векторы `{dense, sparse}`, дефолтного нет (без него — ошибка «Please select a valid vector name»). Точки раскрасятся по четырём пластам — визуальная карта орг-памяти, открытие лекции.
 
 ## Архитектура (Ф0–Ф1)
 

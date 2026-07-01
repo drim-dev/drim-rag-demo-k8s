@@ -1,0 +1,6 @@
+# Watcher walks all imported modules and triggers transformers' lazy imports
+# (e.g. zoedepth -> torchvision), logging noisy ModuleNotFoundError. The demo
+# doesn't need hot-reload; disabling the watcher silences it. Use "poll" instead
+# of "none" if you want reload back while iterating on the code.
+[server]
+fileWatcherType = "none"
