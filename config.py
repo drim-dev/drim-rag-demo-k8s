@@ -24,6 +24,11 @@ DENSE_MODEL = "nomic-embed-text"   # served by Ollama
 DENSE_DIM = 768
 SPARSE_MODEL = "Qdrant/bm25"       # fastembed, no training needed
 
+# --- Answer generation (Streamlit UI) ---
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+GEN_MODEL = "claude-opus-4-8"      # Claude model that writes the answer; swap for speed if needed
+TRANSLATE_MODEL = "claude-haiku-4-5"  # cheap/fast model: RU question -> EN search query (corpus is English)
+
 # --- Corpus: kube-scheduler scoped to SIG Scheduling ---
 K8S_REPO = "kubernetes/kubernetes"
 ENH_REPO = "kubernetes/enhancements"
