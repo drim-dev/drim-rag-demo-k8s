@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+data/
+qdrant_storage/
+.state.json
+.uv/
+uv.lock

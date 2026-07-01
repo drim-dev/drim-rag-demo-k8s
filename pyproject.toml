@@ -1,0 +1,25 @@
+[project]
+name = "scheduler-org-memory"
+version = "0.1.0"
+description = "RAG over kube-scheduler institutional memory (lecture demo). Phase 0-1: ingest + index."
+requires-python = ">=3.11"
+dependencies = [
+    # Phase 0-1: ingestion + indexing
+    "qdrant-client[fastembed]>=1.12",  # dense storage + sparse BM25 via fastembed
+    "requests>=2.32",                   # GitHub API + raw downloads
+    "python-dotenv>=1.0",
+    "tree-sitter>=0.23",                # Go code chunking
+    "tree-sitter-go>=0.23",
+    # Phase 2: hybrid retrieval + rerank
+    "sentence-transformers>=3.0",       # cross-encoder BAAI/bge-reranker-base
+    # Phase 3: MCP server (official SDK; FastMCP is bundled at mcp.server.fastmcp)
+    "mcp>=1.2",
+    # Phase 4: live-update queue (Redis Streams)
+    "redis>=5.0",
+    "fastapi>=0.115",
+    "uvicorn>=0.32",
+    # Later phases add: streamlit (UI), anthropic.
+]
+
+[tool.uv]
+package = false

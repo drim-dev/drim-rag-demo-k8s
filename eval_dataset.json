@@ -1,0 +1,38 @@
+[
+  {
+    "question": "Why doesn't preemption guarantee the preemptor lands on the freed node?",
+    "expected": ["scheduling/pod-preemption.md", "1923-prefer-nominated-node"],
+    "note": "nominatedNodeName is a hint, not a guarantee"
+  },
+  {
+    "question": "Is cross-node preemption supported, and why or why not?",
+    "expected": ["scheduling/pod-preemption.md"],
+    "note": "rejected: exhaustive search prohibitively expensive at scale"
+  },
+  {
+    "question": "Are preemption victims ordered by priority or by QoS class?",
+    "expected": ["scheduling/pod-preemption.md"],
+    "note": "priority first, QoS as tiebreaker; QoS-first was rejected"
+  },
+  {
+    "question": "What is NominatedNodeName used for in the scheduler?",
+    "expected": ["scheduling/pod-preemption.md", "1923-prefer-nominated-node"],
+    "note": "exact identifier — vector-only retrieval tends to miss it"
+  },
+  {
+    "question": "What does the Permit extension point in the scheduling framework do?",
+    "expected": ["624-scheduling-framework"]
+  },
+  {
+    "question": "How does gang / co-scheduling relate to the core scheduler?",
+    "expected": ["583-coscheduling", "4671-gang-scheduling"]
+  },
+  {
+    "question": "How is preemptionPolicy stored — in the PodSpec or read live from the PriorityClass?",
+    "expected": ["902-non-preempting-priorityclass"]
+  },
+  {
+    "question": "kube-scheduler command-line flags and configuration reference",
+    "expected": ["kube-scheduler"]
+  }
+]
